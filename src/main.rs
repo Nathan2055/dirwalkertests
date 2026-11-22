@@ -67,21 +67,26 @@ fn hypernormalize_path(input: &Path) -> Result<Box<Path>> {
     }
     let rebuild = PathBuf::from(rebuild);
 
-    let inode1 = get_inode(&input);
-    let inode2 = get_inode(&canon);
-    let inode3 = get_inode(&rebuild);
+    let inode1 = get_inode(&input).with_context(|| format!("Failed to get innode of {}", path_to_string(&input)))?;
+    let inode2 = get_inode(&canon).with_context(|| format!("Failed to get innode of {}", path_to_string(&canon)))?;
+    let inode3 = get_inode(&rebuild).with_context(|| format!("Failed to get innode of {}", path_to_string(&rebuild)))?;
 
-    if inode1 == inode2 && inode2 == inode3 {
-        return Ok(rebuild.into_boxed_path());
+    if inode1 == inode2 {
+        if inode2 == inode3 {
+            return Ok(rebuild.into_boxed_path());
+        }
     }
 
     return Ok(canon.into_boxed_path());
 }
 
 fn get_inode(path: &Path) -> Result<u64> {
-    let path_as_string = || path.display().to_string();
-    let fd = File::open(path).with_context(|| format!("Failed to open {}", path_as_string()))?;
-    let md = fd.metadata().with_context(|| format!("Failed to stat {}", path_as_string()))?;
+    let fd = File::open(path).with_context(|| format!("Failed to open {}", path_to_string(path)))?;
+    let md = fd.metadata().with_context(|| format!("Failed to stat {}", path_to_string(path)))?;
     let id = md.st_ino();
     Ok(id)
+}
+
+fn path_to_string(path: &Path) -> String {
+    path.display().to_string()
 }
