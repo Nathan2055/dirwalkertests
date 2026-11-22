@@ -72,15 +72,16 @@ fn hypernormalize_path(input: &Path) -> Result<Box<Path>> {
     let inode3 = get_inode(&rebuild);
 
     if inode1 == inode2 && inode2 == inode3 {
-        return rebuild.into_boxed_path();
+        return Ok(rebuild.into_boxed_path());
     }
 
-    return canon.into_boxed_path();
+    return Ok(canon.into_boxed_path());
 }
 
-fn get_inode(path: &Path) -> u64 {
-    let fd = File::open(path).unwrap();
-    let md = fd.metadata().unwrap();
+fn get_inode(path: &Path) -> Result<u64> {
+    let path_as_string = || path.display().to_string();
+    let fd = File::open(path).with_context(|| format!("Failed to open {}", path_as_string()))?;
+    let md = fd.metadata().with_context(|| format!("Failed to stat {}", path_as_string()))?;
     let id = md.st_ino();
-    id
+    Ok(id)
 }
