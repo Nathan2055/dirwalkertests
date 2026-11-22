@@ -1,4 +1,4 @@
-use std::{env::args_os, ffi::{OsStr, OsString}, fs::{File, symlink_metadata}, io::ErrorKind, os::macos::fs::MetadataExt, path::{Path, PathBuf}};
+use std::{env::args_os, ffi::{OsStr, OsString}, fs::{File, symlink_metadata}, io::ErrorKind, os::macos::fs::MetadataExt, path::{Component, Path, PathBuf}};
 use anyhow::{Context, Result, bail, ensure};
 
 fn main() {
@@ -44,18 +44,18 @@ fn get_path_from_args() -> Result<Box<Path>> {
     return !
 }
 
-fn hypernormalize_path(input: &Path) -> Box<Path> {
+fn hypernormalize_path(input: &Path) -> Result<Box<Path>> {
     let canon = input.canonicalize().unwrap();
-    let mut items = vec![];
+    let mut items = Vec::with_capacity(canon.components().count());
     for part in canon.components() {
         match part {
-            std::path::Component::Prefix(_) => panic!("Unexpected Windows path prefix encountered"),
-            std::path::Component::CurDir => panic!("Unexpected reference to current directory encountered"),
-            std::path::Component::ParentDir => panic!("Unexpected reference to parent directory encountered"),
-            std::path::Component::RootDir => {
+            Component::Prefix(_) => bail!("Unexpected Windows path prefix encountered"),
+            Component::CurDir => bail!("Unexpected reference to current directory encountered"),
+            Component::ParentDir => bail!("Unexpected reference to parent directory encountered"),
+            Component::RootDir => {
                 items.push(OsString::from(""));
             },
-            std::path::Component::Normal(part_os_str) => {
+            Component::Normal(part_os_str) => {
                 items.push(part_os_str.to_owned());
             },
         }
