@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, anyhow, bail};
 use std::{
     env::args_os,
     ffi::OsString,
@@ -13,7 +13,7 @@ fn main() {
 }
 
 fn get_path_from_args() -> Result<Box<Path>> {
-    let stuff = PathBuf::from(
+    let path = PathBuf::from(
         args_os()
             .collect::<Vec<_>>()
             .get(1)
@@ -22,26 +22,33 @@ fn get_path_from_args() -> Result<Box<Path>> {
     )
     .into_boxed_path();
 
-    let stuff_str = stuff.display().to_string().into_boxed_str();
+    let path_md = symlink_metadata(&path)
+        .with_context(|| format!("Failed to read path {}", path_to_string(&path)))?;
 
-    let stuff_stat = symlink_metadata(&stuff)
-        .with_context(|| {
-            format!(
-                "Failed to read path {}",
-                stuff.display().to_string().into_boxed_str()
-            )
-        })
-        .context("Failed to read path {stuff_str}")?;
+    if path_md.is_file() {
+        bail!("Path {} is a file", path_to_string(&path));
+    } else if path_md.is_symlink() {
+        bail!("Path {} is a symlink", path_to_string(&path));
+    } else if !(path_md.is_dir()) {
+        bail!("Path {} is not a directory", path_to_string(&path));
+    }
 
-    let error_path = || stuff.display().to_string().into_boxed_str();
+    let path_file = path_md
+        .is_file()
+        .ok_or(anyhow!(""))
+        .with_context(|| format!("Path {} is a file", path_to_string(&path)));
+
+    if path_md.is_file() {}
+
+    let error_path = || path.display().to_string().into_boxed_str();
     let error_generic = || format!("Failed to validate provided path \"{}\"", error_path());
     let error_is_file = || format!("Provided path \"{}\" is a file", error_path());
     let error_is_symlink = || format!("Provided path \"{}\" is a symlink", error_path());
 
-    let stuff_stat = symlink_metadata(&stuff).with_context(|| {
+    let stuff_stat = symlink_metadata(&path).with_context(|| {
         format!(
             "Failed to validate provided path \"{}\"",
-            stuff.display().to_string().into_boxed_str()
+            path.display().to_string().into_boxed_str()
         )
     })?;
     let stuff_is_dir = stuff_stat.is_dir();
@@ -49,12 +56,12 @@ fn get_path_from_args() -> Result<Box<Path>> {
         if stuff_stat.is_file() {
             bail!(format!(
                 "Provided path \"{}\" is a file",
-                stuff.display().to_string().into_boxed_str()
+                path.display().to_string().into_boxed_str()
             ));
         } else if stuff_stat.is_symlink() {
             bail!(format!(
                 "Provided path \"{}\" is a symlink",
-                stuff.display().to_string().into_boxed_str()
+                path.display().to_string().into_boxed_str()
             ));
         } else {
         }
