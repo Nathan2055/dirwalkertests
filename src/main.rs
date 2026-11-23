@@ -1,4 +1,8 @@
 use anyhow::{Context, Result, anyhow, bail};
+use rustix::fs::Mode;
+use rustix::fs::OFlags;
+use rustix::fs::open;
+use rustix::io::Errno;
 use std::{
     env::args_os,
     ffi::OsString,
@@ -19,8 +23,7 @@ fn get_path_from_args() -> Result<Box<Path>> {
             .get(1)
             .context("No path specified on command line")?
             .clone(),
-    )
-    .into_boxed_path();
+    );
 
     let path_md = symlink_metadata(&path)
         .with_context(|| format!("Failed to read path {}", path_to_string(&path)))?;
@@ -37,6 +40,27 @@ fn get_path_from_args() -> Result<Box<Path>> {
         .is_file()
         .ok_or(anyhow!(""))
         .with_context(|| format!("Path {} is a file", path_to_string(&path)));
+
+    let fd = open(
+        &path,
+        OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+        Mode::empty(),
+    );
+
+    match fd {
+        Ok(_) => todo!(),
+        Err(Errno::AGAIN) => todo!(),
+        Err(Errno::ACCESS) => todo!(), // access denied
+        Err(Errno::INTR) => todo!(), // interrupted by signal
+        Err(Errno::INVAL) => todo!(), // invalid path
+        Err(Errno::LOOP) => todo!(), // symlinks encountered
+        Err(Errno::NAMETOOLONG) => todo!(), // path too long
+        Err(Errno::NOTDIR) => todo!(), // not a directory
+        Err(Errno::AGAIN) => todo!(), // interrupted by something else
+        Err(Errno::AGAIN) => todo!(),
+        Err(Errno::AGAIN) => todo!(),
+        Err(_) => todo!(),
+    }
 
     if path_md.is_file() {}
 
