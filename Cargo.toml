@@ -6,4 +6,3 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.104"
 ignore = "0.4.34"
-thiserror = "2.0.21"
