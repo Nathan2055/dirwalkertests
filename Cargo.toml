@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.104"
 ignore = "0.4.34"
+rustix = "1.1.6"
