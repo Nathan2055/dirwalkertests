@@ -19,10 +19,7 @@ fn main() {
     const FLAGS_CONST: OFlags = const {
         let mut flags = OFlags::empty().bits();
         flags = flags | OFlags::DIRECTORY.bits() | OFlags::NOFOLLOW.bits() | OFlags::CLOEXEC.bits();
-        match OFlags::from_bits(flags) {
-            Some(x) => x,
-            None => panic!("Invalid bits"),
-        }
+        OFlags::from_bits(flags).unwrap()
     };
 
     let flags = OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC;
