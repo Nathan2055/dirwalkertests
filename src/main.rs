@@ -14,21 +14,6 @@ use std::{
 
 fn main() {
     println!("Hello, world!");
-    println!();
-
-    const FLAGS_CONST: OFlags = const {
-        let mut flags = OFlags::empty().bits();
-        flags = flags | OFlags::DIRECTORY.bits() | OFlags::NOFOLLOW.bits() | OFlags::CLOEXEC.bits();
-        OFlags::from_bits(flags).unwrap()
-    };
-
-    let flags = OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC;
-
-    println!("OFlags::DIRECTORY: {}", OFlags::DIRECTORY.bits());
-    println!("OFlags::NOFOLLOW: {}", OFlags::NOFOLLOW.bits());
-    println!("OFlags::CLOEXEC: {}", OFlags::CLOEXEC.bits());
-    println!("All flags: {}", flags.bits());
-    println!("All flags from const: {}", FLAGS_CONST.bits());
 }
 
 fn get_path_from_args() -> Result<Box<Path>> {
@@ -167,64 +152,41 @@ fn path_to_string(path: &Path) -> String {
     path.display().to_string()
 }
 
+enum DirectoryCheckErrors {
+    AccessDenied,
+    Interrupted,
+    InvalidPath,
+    IsSymlink,
+    PathTooLong,
+    NotDirectory,
+}
+
 fn check_if_dir(path: &Path) -> Result<()> {
-    /*
-    const FLAGS: OFlags = const {
-        //let flags = OFlags::empty();
-        //let mut flags = flags.bits();
-        //let directory = OFlags::DIRECTORY.bits();
-        //flags = flags | directory;
-        //flags = flags | OFlags::DIRECTORY;
-        // OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC
-        let mut flags = OFlags::empty().bits();
-        flags = flags | OFlags::DIRECTORY.bits() | OFlags::NOFOLLOW.bits() | OFlags::CLOEXEC.bits();
-        //OFlags::empty()
-        //OFlags::from_bits(flags).unwrap_or_else(|| compile_error!("Invalid bits"))
-
-        panic!("Test");
-
-        match OFlags::from_bits(flags) {
-            Some(x) => x,
-            None => unimplemented!(),
-        }
-
-        //OFlags::from_bits(flags).unwrap()
-    };
-    */
     const FLAGS: OFlags = const {
         let mut flags = OFlags::empty().bits();
         flags = flags | OFlags::DIRECTORY.bits() | OFlags::NOFOLLOW.bits() | OFlags::CLOEXEC.bits();
-        //flags = flags + 25533;
-
-        match OFlags::from_bits(flags) {
-            Some(x) => x,
-            None => panic!("Invalid bits"),
-        }
-
-        //OFlags::from_bits(flags).unwrap()
+        OFlags::from_bits(flags).unwrap()
     };
-
-    const MODE: Mode = Mode::empty();
-
-
-    let fd = open(
-        path,
-        OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
-        Mode::empty(),
-    );
-
-    match fd {
-        Ok(_) => todo!(),
-        Err(Errno::AGAIN) => todo!(),
-        Err(Errno::ACCESS) => todo!(), // access denied
-        Err(Errno::INTR) => todo!(), // interrupted by signal
-        Err(Errno::INVAL) => todo!(), // invalid path
-        Err(Errno::LOOP) => todo!(), // symlinks encountered
-        Err(Errno::NAMETOOLONG) => todo!(), // path too long
-        Err(Errno::NOTDIR) => todo!(), // not a directory
-        Err(Errno::AGAIN) => todo!(), // interrupted by something else
-        Err(Errno::AGAIN) => todo!(),
-        Err(Errno::AGAIN) => todo!(),
-        Err(_) => todo!(),
+    const MODE: Mode = const {
+        Mode::empty()
+    };
+    let mut retries: u8 = 0;
+    loop {
+        retries += 1;
+        if retries > 4 {
+            return Err(anyhow!("Failed after four retries"))
+        }
+        let fd = open(path, FLAGS, MODE);
+        match fd {
+            Ok(_) => return Ok(()),
+            Err(Errno::INTR) => continue, // interrupted by signal
+            Err(Errno::AGAIN) => continue,
+            Err(Errno::ACCESS) => return Err(anyhow!("Access denied")), // access denied
+            Err(Errno::INVAL) => return Err(anyhow!("Invalid path")), // invalid path
+            Err(Errno::LOOP) => return Err(anyhow!("Symlinks encountered")), // symlinks encountered
+            Err(Errno::NAMETOOLONG) => return Err(anyhow!("Path too long")), // path too long
+            Err(Errno::NOTDIR) => return Err(anyhow!("Path is not a directory")), // not a directory
+            Err(_) => return Err(anyhow!("Unknown error occurred")),
+        }
     }
 }
