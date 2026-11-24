@@ -173,50 +173,7 @@ fn check_if_dir(path: &Path) -> Result<()> {
         OFlags::from_bits(flags).unwrap()
     };
     const MODE: Mode = const { Mode::empty() };
-
-    let fd = retry_on_intr(|| open(path, FLAGS, MODE))
-        .with_context(|| format!("Failed to open {}: Access denied", path.display()))?;
-
-    let mut retries: u8 = 0;
-    loop {
-        retries += 1;
-        if retries > 4 {
-            return Err(anyhow!(
-                "Failed to open {} after four retries",
-                path.display()
-            ));
-        }
-        let fd = open(path, FLAGS, MODE);
-        match fd {
-            Ok(_) => return Ok(()),
-            Err(Errno::INTR) => continue,
-            Err(Errno::ACCESS) => {
-                return Err(anyhow!("Failed to open {}: Access denied", path.display()));
-            }
-            Err(Errno::INVAL) => {
-                return Err(anyhow!("Failed to open {}: Invalid path", path.display()));
-            }
-            Err(Errno::LOOP) => {
-                return Err(anyhow!(
-                    "Failed to open {}: Symlinks encountered",
-                    path.display()
-                ));
-            }
-            Err(Errno::NAMETOOLONG) => {
-                return Err(anyhow!("Failed to open {}: Path too long", path.display()));
-            }
-            Err(Errno::NOTDIR) => {
-                return Err(anyhow!(
-                    "Failed to open {}: Path is not a directory",
-                    path.display()
-                ));
-            }
-            Err(_) => {
-                return Err(anyhow!(
-                    "Failed to open {}: Unknown error occurred",
-                    path.display()
-                ));
-            }
-        }
-    }
+    let _fd = retry_on_intr(|| open(path, FLAGS, MODE))
+        .with_context(|| format!("Failed to open {}", path.display()))?;
+    Ok(())
 }
