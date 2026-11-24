@@ -4,6 +4,8 @@ use rustix::fs::OFlags;
 use rustix::fs::open;
 use rustix::io::Errno;
 use rustix::io::retry_on_intr;
+use rustix::fs::fstat;
+use rustix::fs::lstat;
 use std::{
     env::args_os,
     ffi::OsString,
@@ -163,6 +165,33 @@ fn get_inode(path: &Path) -> Result<u64> {
         .with_context(|| format!("Failed to stat {}", path.display()))?;
     let id = md.st_ino();
     Ok(id)
+}
+
+/*
+fn get_inode_new(path: &Path) -> Result<u64> {
+    const FLAGS: OFlags = const {
+        let mut flags = OFlags::empty().bits();
+        flags = flags | OFlags::CLOEXEC.bits();
+        OFlags::from_bits(flags).unwrap()
+    };
+    const MODE: Mode = const { Mode::empty() };
+
+    let fd = retry_on_intr(|| open(path, FLAGS, MODE)).with_context(|| format!("Failed to open {}", path.display()))?;
+
+
+    let md = fstat(fd);
+}
+*/
+
+/*
+fn get_inode_new(path: &Path) -> Result<u64> {
+    let md = retry_on_intr(|| lstat(path)).with_context(|| format!("Failed to stat {}", path.display()))?;
+    let val = md.st_ino;
+}
+*/
+
+fn get_inode_new(path: &Path) -> Result<u64> {
+    Ok(retry_on_intr(|| lstat(path)).with_context(|| format!("Failed to stat {}", path.display()))?.st_ino)
 }
 
 // Checks if a path is a directory
