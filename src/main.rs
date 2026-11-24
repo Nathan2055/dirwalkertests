@@ -1,17 +1,11 @@
 use anyhow::{Context, Result, anyhow, bail};
-use rustix::fs::Mode;
-use rustix::fs::OFlags;
-use rustix::fs::fstat;
-use rustix::fs::lstat;
-use rustix::fs::open;
-use rustix::io::Errno;
-use rustix::io::retry_on_intr;
+use rustix::fs::{open, lstat, Mode, OFlags};
+use rustix::io::{retry_on_intr, Errno};
 use std::{
     env::args_os,
     ffi::OsString,
-    fs::{File, symlink_metadata},
+    fs::symlink_metadata,
     io::ErrorKind,
-    os::macos::fs::MetadataExt,
     path::{Component, Path, PathBuf},
 };
 
