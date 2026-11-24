@@ -169,6 +169,14 @@ fn get_inode(path: impl AsRef<Path>) -> Result<u64> {
 }
 
 // Checks if a path is a directory
-fn check_if_dir(path: &Path) -> Result<()> {
-    retry_on_intr(|| open(path, OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC, Mode::empty())).map(|_| ()).with_context(|| format!("Failed to open {}", path.display()))
+fn check_if_dir(path: impl AsRef<Path>) -> Result<()> {
+    retry_on_intr(|| {
+        open(
+            path.as_ref(),
+            OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Mode::empty(),
+        )
+    })
+    .map(|_| ())
+    .with_context(|| format!("Failed to open {}", path.as_ref().display()))
 }
