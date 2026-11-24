@@ -13,6 +13,23 @@ use std::{
 };
 
 fn main() {
+    let error = Errno::AGAIN;
+    println!("{}", error);
+    let error = Errno::ACCESS;
+    println!("{}", error);
+    let error = Errno::INTR;
+    println!("{}", error);
+    let error = Errno::INVAL;
+    println!("{}", error);
+    let error = Errno::LOOP;
+    println!("{}", error);
+    let error = Errno::NAMETOOLONG;
+    println!("{}", error);
+    let error = Errno::NOTDIR;
+    println!("{}", error);
+
+    println!();
+
     println!("Hello, world!");
 }
 
@@ -148,6 +165,7 @@ fn get_inode(path: &Path) -> Result<u64> {
     Ok(id)
 }
 
+// Checks if a path is a directory
 fn check_if_dir(path: &Path) -> Result<()> {
     const FLAGS: OFlags = const {
         let mut flags = OFlags::empty().bits();
@@ -165,7 +183,6 @@ fn check_if_dir(path: &Path) -> Result<()> {
         match fd {
             Ok(_) => return Ok(()),
             Err(Errno::INTR) => continue,
-            Err(Errno::AGAIN) => continue,
             Err(Errno::ACCESS) => return Err(anyhow!("Failed to open {}: Access denied", path.display())),
             Err(Errno::INVAL) => return Err(anyhow!("Failed to open {}: Invalid path", path.display())),
             Err(Errno::LOOP) => return Err(anyhow!("Failed to open {}: Symlinks encountered", path.display())),
