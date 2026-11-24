@@ -163,19 +163,19 @@ fn check_if_dir(path: &Path) -> Result<()> {
     loop {
         retries += 1;
         if retries > 4 {
-            return Err(anyhow!("Failed after four retries"));
+            return Err(anyhow!("Failed to open {} after four retries", path_to_string(path)));
         }
         let fd = open(path, FLAGS, MODE);
         match fd {
             Ok(_) => return Ok(()),
             Err(Errno::INTR) => continue,
             Err(Errno::AGAIN) => continue,
-            Err(Errno::ACCESS) => return Err(anyhow!("Access denied")),
-            Err(Errno::INVAL) => return Err(anyhow!("Invalid path")),
-            Err(Errno::LOOP) => return Err(anyhow!("Symlinks encountered")),
-            Err(Errno::NAMETOOLONG) => return Err(anyhow!("Path too long")),
-            Err(Errno::NOTDIR) => return Err(anyhow!("Path is not a directory")),
-            Err(_) => return Err(anyhow!("Unknown error occurred")),
+            Err(Errno::ACCESS) => return Err(anyhow!("Failed to open {}: Access denied", path_to_string(path))),
+            Err(Errno::INVAL) => return Err(anyhow!("Failed to open {}: Invalid path", path_to_string(path))),
+            Err(Errno::LOOP) => return Err(anyhow!("Failed to open {}: Symlinks encountered", path_to_string(path))),
+            Err(Errno::NAMETOOLONG) => return Err(anyhow!("Failed to open {}: Path too long", path_to_string(path))),
+            Err(Errno::NOTDIR) => return Err(anyhow!("Failed to open {}: Path is not a directory", path_to_string(path))),
+            Err(_) => return Err(anyhow!("Failed to open {}: Unknown error occurred", path_to_string(path))),
         }
     }
 }
