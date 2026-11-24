@@ -140,10 +140,10 @@ fn hypernormalize_path(input: &Path) -> Result<Box<Path>> {
     }
     let rebuild = PathBuf::from(rebuild);
 
-    let inode1 = get_inode(&input)
-        .with_context(|| format!("Failed to get inode of {}", input.display()))?;
-    let inode2 = get_inode(&canon)
-        .with_context(|| format!("Failed to get inode of {}", canon.display()))?;
+    let inode1 =
+        get_inode(&input).with_context(|| format!("Failed to get inode of {}", input.display()))?;
+    let inode2 =
+        get_inode(&canon).with_context(|| format!("Failed to get inode of {}", canon.display()))?;
     let inode3 = get_inode(&rebuild)
         .with_context(|| format!("Failed to get inode of {}", rebuild.display()))?;
 
@@ -157,8 +157,7 @@ fn hypernormalize_path(input: &Path) -> Result<Box<Path>> {
 }
 
 fn get_inode(path: &Path) -> Result<u64> {
-    let fd =
-        File::open(path).with_context(|| format!("Failed to open {}", path.display()))?;
+    let fd = File::open(path).with_context(|| format!("Failed to open {}", path.display()))?;
     let md = fd
         .metadata()
         .with_context(|| format!("Failed to stat {}", path.display()))?;
@@ -175,24 +174,49 @@ fn check_if_dir(path: &Path) -> Result<()> {
     };
     const MODE: Mode = const { Mode::empty() };
 
-    let fd = retry_on_intr(|| open(path, FLAGS, MODE)).with_context(|| format!("Failed to open {}: Access denied", path.display()))?;
+    let fd = retry_on_intr(|| open(path, FLAGS, MODE))
+        .with_context(|| format!("Failed to open {}: Access denied", path.display()))?;
 
     let mut retries: u8 = 0;
     loop {
         retries += 1;
         if retries > 4 {
-            return Err(anyhow!("Failed to open {} after four retries", path.display()));
+            return Err(anyhow!(
+                "Failed to open {} after four retries",
+                path.display()
+            ));
         }
         let fd = open(path, FLAGS, MODE);
         match fd {
             Ok(_) => return Ok(()),
             Err(Errno::INTR) => continue,
-            Err(Errno::ACCESS) => return Err(anyhow!("Failed to open {}: Access denied", path.display())),
-            Err(Errno::INVAL) => return Err(anyhow!("Failed to open {}: Invalid path", path.display())),
-            Err(Errno::LOOP) => return Err(anyhow!("Failed to open {}: Symlinks encountered", path.display())),
-            Err(Errno::NAMETOOLONG) => return Err(anyhow!("Failed to open {}: Path too long", path.display())),
-            Err(Errno::NOTDIR) => return Err(anyhow!("Failed to open {}: Path is not a directory", path.display())),
-            Err(_) => return Err(anyhow!("Failed to open {}: Unknown error occurred", path.display())),
+            Err(Errno::ACCESS) => {
+                return Err(anyhow!("Failed to open {}: Access denied", path.display()));
+            }
+            Err(Errno::INVAL) => {
+                return Err(anyhow!("Failed to open {}: Invalid path", path.display()));
+            }
+            Err(Errno::LOOP) => {
+                return Err(anyhow!(
+                    "Failed to open {}: Symlinks encountered",
+                    path.display()
+                ));
+            }
+            Err(Errno::NAMETOOLONG) => {
+                return Err(anyhow!("Failed to open {}: Path too long", path.display()));
+            }
+            Err(Errno::NOTDIR) => {
+                return Err(anyhow!(
+                    "Failed to open {}: Path is not a directory",
+                    path.display()
+                ));
+            }
+            Err(_) => {
+                return Err(anyhow!(
+                    "Failed to open {}: Unknown error occurred",
+                    path.display()
+                ));
+            }
         }
     }
 }
