@@ -153,6 +153,7 @@ fn hypernormalize_path(input: &Path) -> Result<Box<Path>> {
 }
 
 // Gets the inode value for a given path
+#[inline(always)]
 fn get_inode(path: impl AsRef<Path>) -> Result<u64> {
     retry_on_intr(|| lstat(path.as_ref()))
         .map(|md| md.st_ino)
@@ -160,6 +161,7 @@ fn get_inode(path: impl AsRef<Path>) -> Result<u64> {
 }
 
 // Checks if a path is a directory
+#[inline(always)]
 fn check_if_dir(path: impl AsRef<Path>) -> Result<()> {
     retry_on_intr(|| {
         open(
