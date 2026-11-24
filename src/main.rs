@@ -152,15 +152,6 @@ fn path_to_string(path: &Path) -> String {
     path.display().to_string()
 }
 
-enum DirectoryCheckErrors {
-    AccessDenied,
-    Interrupted,
-    InvalidPath,
-    IsSymlink,
-    PathTooLong,
-    NotDirectory,
-}
-
 fn check_if_dir(path: &Path) -> Result<()> {
     const FLAGS: OFlags = const {
         let mut flags = OFlags::empty().bits();
@@ -179,13 +170,13 @@ fn check_if_dir(path: &Path) -> Result<()> {
         let fd = open(path, FLAGS, MODE);
         match fd {
             Ok(_) => return Ok(()),
-            Err(Errno::INTR) => continue, // interrupted by signal
+            Err(Errno::INTR) => continue,
             Err(Errno::AGAIN) => continue,
-            Err(Errno::ACCESS) => return Err(anyhow!("Access denied")), // access denied
-            Err(Errno::INVAL) => return Err(anyhow!("Invalid path")), // invalid path
-            Err(Errno::LOOP) => return Err(anyhow!("Symlinks encountered")), // symlinks encountered
-            Err(Errno::NAMETOOLONG) => return Err(anyhow!("Path too long")), // path too long
-            Err(Errno::NOTDIR) => return Err(anyhow!("Path is not a directory")), // not a directory
+            Err(Errno::ACCESS) => return Err(anyhow!("Access denied")),
+            Err(Errno::INVAL) => return Err(anyhow!("Invalid path")),
+            Err(Errno::LOOP) => return Err(anyhow!("Symlinks encountered")),
+            Err(Errno::NAMETOOLONG) => return Err(anyhow!("Path too long")),
+            Err(Errno::NOTDIR) => return Err(anyhow!("Path is not a directory")),
             Err(_) => return Err(anyhow!("Unknown error occurred")),
         }
     }
