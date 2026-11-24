@@ -26,20 +26,20 @@ fn get_path_from_args() -> Result<Box<Path>> {
     );
 
     let path_md = symlink_metadata(&path)
-        .with_context(|| format!("Failed to read path {}", path_to_string(&path)))?;
+        .with_context(|| format!("Failed to read path {}", path.display()))?;
 
     if path_md.is_file() {
-        bail!("Path {} is a file", path_to_string(&path));
+        bail!("Path {} is a file", path.display());
     } else if path_md.is_symlink() {
-        bail!("Path {} is a symlink", path_to_string(&path));
+        bail!("Path {} is a symlink", path.display());
     } else if !(path_md.is_dir()) {
-        bail!("Path {} is not a directory", path_to_string(&path));
+        bail!("Path {} is not a directory", path.display());
     }
 
     let path_file = path_md
         .is_file()
         .ok_or(anyhow!(""))
-        .with_context(|| format!("Path {} is a file", path_to_string(&path)));
+        .with_context(|| format!("Path {} is a file", path.display()));
 
     let fd = open(
         &path,
@@ -123,11 +123,11 @@ fn hypernormalize_path(input: &Path) -> Result<Box<Path>> {
     let rebuild = PathBuf::from(rebuild);
 
     let inode1 = get_inode(&input)
-        .with_context(|| format!("Failed to get inode of {}", path_to_string(&input)))?;
+        .with_context(|| format!("Failed to get inode of {}", input.display()))?;
     let inode2 = get_inode(&canon)
-        .with_context(|| format!("Failed to get inode of {}", path_to_string(&canon)))?;
+        .with_context(|| format!("Failed to get inode of {}", canon.display()))?;
     let inode3 = get_inode(&rebuild)
-        .with_context(|| format!("Failed to get inode of {}", path_to_string(&rebuild)))?;
+        .with_context(|| format!("Failed to get inode of {}", rebuild.display()))?;
 
     if inode1 == inode2 {
         if inode2 == inode3 {
@@ -140,16 +140,12 @@ fn hypernormalize_path(input: &Path) -> Result<Box<Path>> {
 
 fn get_inode(path: &Path) -> Result<u64> {
     let fd =
-        File::open(path).with_context(|| format!("Failed to open {}", path_to_string(path)))?;
+        File::open(path).with_context(|| format!("Failed to open {}", path.display()))?;
     let md = fd
         .metadata()
-        .with_context(|| format!("Failed to stat {}", path_to_string(path)))?;
+        .with_context(|| format!("Failed to stat {}", path.display()))?;
     let id = md.st_ino();
     Ok(id)
-}
-
-fn path_to_string(path: &Path) -> String {
-    path.display().to_string()
 }
 
 fn check_if_dir(path: &Path) -> Result<()> {
@@ -163,19 +159,19 @@ fn check_if_dir(path: &Path) -> Result<()> {
     loop {
         retries += 1;
         if retries > 4 {
-            return Err(anyhow!("Failed to open {} after four retries", path_to_string(path)));
+            return Err(anyhow!("Failed to open {} after four retries", path.display()));
         }
         let fd = open(path, FLAGS, MODE);
         match fd {
             Ok(_) => return Ok(()),
             Err(Errno::INTR) => continue,
             Err(Errno::AGAIN) => continue,
-            Err(Errno::ACCESS) => return Err(anyhow!("Failed to open {}: Access denied", path_to_string(path))),
-            Err(Errno::INVAL) => return Err(anyhow!("Failed to open {}: Invalid path", path_to_string(path))),
-            Err(Errno::LOOP) => return Err(anyhow!("Failed to open {}: Symlinks encountered", path_to_string(path))),
-            Err(Errno::NAMETOOLONG) => return Err(anyhow!("Failed to open {}: Path too long", path_to_string(path))),
-            Err(Errno::NOTDIR) => return Err(anyhow!("Failed to open {}: Path is not a directory", path_to_string(path))),
-            Err(_) => return Err(anyhow!("Failed to open {}: Unknown error occurred", path_to_string(path))),
+            Err(Errno::ACCESS) => return Err(anyhow!("Failed to open {}: Access denied", path.display())),
+            Err(Errno::INVAL) => return Err(anyhow!("Failed to open {}: Invalid path", path.display())),
+            Err(Errno::LOOP) => return Err(anyhow!("Failed to open {}: Symlinks encountered", path.display())),
+            Err(Errno::NAMETOOLONG) => return Err(anyhow!("Failed to open {}: Path too long", path.display())),
+            Err(Errno::NOTDIR) => return Err(anyhow!("Failed to open {}: Path is not a directory", path.display())),
+            Err(_) => return Err(anyhow!("Failed to open {}: Unknown error occurred", path.display())),
         }
     }
 }
