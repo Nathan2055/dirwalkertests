@@ -3,6 +3,7 @@ use rustix::fs::Mode;
 use rustix::fs::OFlags;
 use rustix::fs::open;
 use rustix::io::Errno;
+use rustix::io::retry_on_intr;
 use std::{
     env::args_os,
     ffi::OsString,
@@ -173,6 +174,9 @@ fn check_if_dir(path: &Path) -> Result<()> {
         OFlags::from_bits(flags).unwrap()
     };
     const MODE: Mode = const { Mode::empty() };
+
+    let fd = retry_on_intr(|| open(path, FLAGS, MODE)).with_context(|| format!("Failed to open {}: Access denied", path.display()))?;
+
     let mut retries: u8 = 0;
     loop {
         retries += 1;
