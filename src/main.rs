@@ -170,13 +170,5 @@ fn get_inode(path: impl AsRef<Path>) -> Result<u64> {
 
 // Checks if a path is a directory
 fn check_if_dir(path: &Path) -> Result<()> {
-    const FLAGS: OFlags = const {
-        let mut flags = OFlags::empty().bits();
-        flags = flags | OFlags::DIRECTORY.bits() | OFlags::NOFOLLOW.bits() | OFlags::CLOEXEC.bits();
-        OFlags::from_bits(flags).unwrap()
-    };
-    const MODE: Mode = const { Mode::empty() };
-    let _fd = retry_on_intr(|| open(path, FLAGS, MODE))
-        .with_context(|| format!("Failed to open {}", path.display()))?;
-    Ok(())
+    retry_on_intr(|| open(path, OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC, Mode::empty())).map(|_| ()).with_context(|| format!("Failed to open {}", path.display()))
 }
