@@ -50,13 +50,13 @@ fn get_path_from_args() -> Result<Box<Path>> {
     match fd {
         Ok(_) => todo!(),
         Err(Errno::AGAIN) => todo!(),
-        Err(Errno::ACCESS) => todo!(), // access denied
-        Err(Errno::INTR) => todo!(), // interrupted by signal
-        Err(Errno::INVAL) => todo!(), // invalid path
-        Err(Errno::LOOP) => todo!(), // symlinks encountered
+        Err(Errno::ACCESS) => todo!(),      // access denied
+        Err(Errno::INTR) => todo!(),        // interrupted by signal
+        Err(Errno::INVAL) => todo!(),       // invalid path
+        Err(Errno::LOOP) => todo!(),        // symlinks encountered
         Err(Errno::NAMETOOLONG) => todo!(), // path too long
-        Err(Errno::NOTDIR) => todo!(), // not a directory
-        Err(Errno::AGAIN) => todo!(), // interrupted by something else
+        Err(Errno::NOTDIR) => todo!(),      // not a directory
+        Err(Errno::AGAIN) => todo!(),       // interrupted by something else
         Err(Errno::AGAIN) => todo!(),
         Err(Errno::AGAIN) => todo!(),
         Err(_) => todo!(),
@@ -158,14 +158,12 @@ fn check_if_dir(path: &Path) -> Result<()> {
         flags = flags | OFlags::DIRECTORY.bits() | OFlags::NOFOLLOW.bits() | OFlags::CLOEXEC.bits();
         OFlags::from_bits(flags).unwrap()
     };
-    const MODE: Mode = const {
-        Mode::empty()
-    };
+    const MODE: Mode = const { Mode::empty() };
     let mut retries: u8 = 0;
     loop {
         retries += 1;
         if retries > 4 {
-            return Err(anyhow!("Failed after four retries"))
+            return Err(anyhow!("Failed after four retries"));
         }
         let fd = open(path, FLAGS, MODE);
         match fd {
