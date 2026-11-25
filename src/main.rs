@@ -59,9 +59,8 @@ fn get_path_from_args() -> Result<Box<Path>> {
         }
     }
 
-    let path = hypernormalize_path(&path).with_context(|| format!("Failed to normalize path {}", path.as_path().display()))?;
-
-
+    let path = hypernormalize_path(&path)
+        .with_context(|| format!("Failed to normalize path {}", path.as_path().display()))?;
 
     return Ok(PathBuf::from("/").into_boxed_path());
 }
