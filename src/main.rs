@@ -39,12 +39,12 @@ fn get_path_from_args() -> Result<Box<Path>> {
             .clone(),
     );
 
-    check_if_dir_error(&path)?;
+    check_if_dir(&path)?;
 
     let path = hypernormalize_path(&path)
         .with_context(|| format!("Failed to normalize path {}", path.as_path().display()))?;
 
-    check_if_dir_error(&path)?;
+    check_if_dir(&path)?;
 
     Ok(path.into_boxed_path())
 }
@@ -109,40 +109,44 @@ fn get_inode(path: impl AsRef<Path>) -> Result<u64> {
 // Checks if a path is a directory
 #[inline(always)]
 fn check_if_dir(path: impl AsRef<Path>) -> Result<()> {
-    retry_on_intr(|| {
-        open(
-            path.as_ref(),
-            OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
-            Mode::empty(),
-        )
-    })
-    .map(|_| ())
-    .with_context(|| format!("Failed to open {}", path.as_ref().display()))
-}
+    fn check_if_dir_open(path: &Path) -> Result<()> {
+        retry_on_intr(|| {
+            open(
+                path,
+                OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+                Mode::empty(),
+            )
+        })
+        .map(|_| ())
+        .with_context(|| format!("Failed to open {}", path.display()))
+    }
 
-// Checks if a path is a directory
-#[inline(always)]
-fn check_if_dir_error(path: impl AsRef<Path>) -> Result<()> {
-    let path = path.as_ref();
-    match check_if_dir(&path) {
-        Ok(_) => {
-            return Ok(());
-        }
-        Err(_) => {
-            let file_type = FileType::from_raw_mode(
-                retry_on_intr(|| lstat(path))
-                    .map(|md| md.st_mode)
-                    .with_context(|| format!("Failed to stat {}", path.display()))?,
-            );
-            if file_type.is_dir() {
-                bail!("Failed to read directory at path {}", path.display());
-            } else if file_type.is_file() {
-                bail!("Path {} is a file", path.display());
-            } else if file_type.is_symlink() {
-                bail!("Path {} is a symlink", path.display());
-            } else {
-                bail!("Failed to access path {}", path.display());
+    fn check_if_dir_match_error(path: impl AsRef<Path>) -> Result<()> {
+        let path = path.as_ref();
+        match check_if_dir_open(&path) {
+            Ok(_) => {
+                return Ok(());
+            }
+            Err(_) => {
+                let file_type = FileType::from_raw_mode(
+                    retry_on_intr(|| lstat(path))
+                        .map(|md| md.st_mode)
+                        .with_context(|| format!("Failed to stat {}", path.display()))?,
+                );
+                if file_type.is_dir() {
+                    bail!("Failed to read directory at path {}", path.display());
+                } else if file_type.is_file() {
+                    bail!("Path {} is a file", path.display());
+                } else if file_type.is_symlink() {
+                    bail!("Path {} is a symlink", path.display());
+                } else {
+                    bail!("Failed to access path {}", path.display());
+                }
             }
         }
     }
+
+    let path = path.as_ref();
+
+    Ok(())
 }
