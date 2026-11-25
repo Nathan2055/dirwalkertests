@@ -128,11 +128,19 @@ fn check_if_dir(path: impl AsRef<Path>) -> Result<()> {
                 return Ok(());
             }
             Err(_) => {
-                let file_type = FileType::from_raw_mode(
-                    retry_on_intr(|| lstat(path))
-                        .map(|md| md.st_mode)
-                        .with_context(|| format!("Failed to stat {}", path.display()))?,
-                );
+                let file_type = {
+                    match retry_on_intr(|| lstat(path)) {
+                        Ok(md) => {
+                            FileType::from_raw_mode(md.st_mode)
+                        },
+                        Err(Errno::NOENT) => {
+                            bail!("Path {} does not exist", path.display());
+                        },
+                        Err(_) => {
+                            bail!("Failed to stat {}", path.display());
+                        },
+                    }
+                };
                 if file_type.is_dir() {
                     bail!("Failed to read directory at path {}", path.display());
                 } else if file_type.is_file() {
@@ -147,6 +155,15 @@ fn check_if_dir(path: impl AsRef<Path>) -> Result<()> {
     }
 
     let path = path.as_ref();
+
+    let success = retry_on_intr(|| {
+            open(
+                path,
+                OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+                Mode::empty(),
+            )
+        }).is_ok();
+    
 
     Ok(())
 }
