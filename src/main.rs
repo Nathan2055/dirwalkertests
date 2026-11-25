@@ -11,6 +11,7 @@ fn main() {
     println!("Hello, world!");
 }
 
+// Extract a path from the command line arguments
 fn get_path_from_args() -> Result<Box<Path>> {
     let path = PathBuf::from(
         args_os()
@@ -30,6 +31,7 @@ fn get_path_from_args() -> Result<Box<Path>> {
     Ok(path.into_boxed_path())
 }
 
+// Normalizes a path completely by breaking it into parts
 fn normalize_path_by_parts(input: &Path) -> Result<PathBuf> {
     let inode1_orig = get_inode(&input)?;
 
@@ -79,12 +81,11 @@ fn normalize_path_by_parts(input: &Path) -> Result<PathBuf> {
 }
 
 // Gets the inode value for a given path
-#[inline(always)]
-fn get_inode(path: impl AsRef<Path>) -> Result<u64> {
-    retry_on_intr(|| lstat(path.as_ref()))
+fn get_inode(path: &Path) -> Result<u64> {
+    retry_on_intr(|| lstat(path))
         .map(|md| md.st_ino)
-        .with_context(|| format!("Failed to stat {}", path.as_ref().display()))
-        .with_context(|| format!("Failed to get inode of {}", path.as_ref().display()))
+        .with_context(|| format!("Failed to stat {}", path.display()))
+        .with_context(|| format!("Failed to get inode of {}", path.display()))
 }
 
 // Checks if a path is a directory
