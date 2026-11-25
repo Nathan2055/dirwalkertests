@@ -39,30 +39,14 @@ fn get_path_from_args() -> Result<Box<Path>> {
             .clone(),
     );
 
-    match check_if_dir(&path) {
-        Ok(_) => {}
-        Err(_) => {
-            let file_type = FileType::from_raw_mode(
-                retry_on_intr(|| lstat(path.as_path()))
-                    .map(|md| md.st_mode)
-                    .with_context(|| format!("Failed to stat {}", path.as_path().display()))?,
-            );
-            if file_type.is_dir() {
-                bail!("Failed to read directory at path {}", path.display());
-            } else if file_type.is_file() {
-                bail!("Path {} is a file", path.display());
-            } else if file_type.is_symlink() {
-                bail!("Path {} is a symlink", path.display());
-            } else {
-                bail!("Failed to access path {}", path.display());
-            }
-        }
-    }
+    check_if_dir_error(&path)?;
 
     let path = hypernormalize_path(&path)
         .with_context(|| format!("Failed to normalize path {}", path.as_path().display()))?;
 
-    return Ok(PathBuf::from("/").into_boxed_path());
+    check_if_dir_error(&path)?;
+
+    Ok(path.into_boxed_path())
 }
 
 fn hypernormalize_path(input: &Path) -> Result<PathBuf> {
