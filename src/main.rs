@@ -1,11 +1,9 @@
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Result, bail};
 use rustix::fs::{FileType, Mode, OFlags, lstat, open};
 use rustix::io::{Errno, retry_on_intr};
 use std::{
     env::args_os,
     ffi::OsString,
-    fs::symlink_metadata,
-    io::ErrorKind,
     path::{Component, Path, PathBuf},
 };
 
