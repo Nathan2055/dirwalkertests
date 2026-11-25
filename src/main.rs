@@ -107,63 +107,41 @@ fn get_inode(path: impl AsRef<Path>) -> Result<u64> {
 }
 
 // Checks if a path is a directory
-#[inline(always)]
-fn check_if_dir(path: impl AsRef<Path>) -> Result<()> {
-    fn check_if_dir_open(path: &Path) -> Result<()> {
-        retry_on_intr(|| {
-            open(
-                path,
-                OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
-                Mode::empty(),
-            )
-        })
-        .map(|_| ())
-        .with_context(|| format!("Failed to open {}", path.display()))
-    }
+fn check_if_dir(path: &Path) -> Result<()> {
+    let success = retry_on_intr(|| {
+        open(
+            path,
+            OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Mode::empty(),
+        )
+    })
+    .is_ok();
 
-    fn check_if_dir_match_error(path: impl AsRef<Path>) -> Result<()> {
-        let path = path.as_ref();
-        match check_if_dir_open(&path) {
-            Ok(_) => {
-                return Ok(());
-            }
-            Err(_) => {
-                let file_type = {
-                    match retry_on_intr(|| lstat(path)) {
-                        Ok(md) => {
-                            FileType::from_raw_mode(md.st_mode)
-                        },
-                        Err(Errno::NOENT) => {
-                            bail!("Path {} does not exist", path.display());
-                        },
-                        Err(_) => {
-                            bail!("Failed to stat {}", path.display());
-                        },
+    match success {
+        true => {
+            return Ok(());
+        }
+        false => {
+            let file_type = {
+                match retry_on_intr(|| lstat(path)) {
+                    Ok(md) => FileType::from_raw_mode(md.st_mode),
+                    Err(Errno::NOENT) => {
+                        bail!("Path {} does not exist", path.display());
                     }
-                };
-                if file_type.is_dir() {
-                    bail!("Failed to read directory at path {}", path.display());
-                } else if file_type.is_file() {
-                    bail!("Path {} is a file", path.display());
-                } else if file_type.is_symlink() {
-                    bail!("Path {} is a symlink", path.display());
-                } else {
-                    bail!("Failed to access path {}", path.display());
+                    Err(_) => {
+                        bail!("Failed to stat {}", path.display());
+                    }
                 }
+            };
+            if file_type.is_dir() {
+                bail!("Failed to read directory at path {}", path.display());
+            } else if file_type.is_file() {
+                bail!("Path {} is a file", path.display());
+            } else if file_type.is_symlink() {
+                bail!("Path {} is a symlink", path.display());
+            } else {
+                bail!("Failed to access path {}", path.display());
             }
         }
     }
-
-    let path = path.as_ref();
-
-    let success = retry_on_intr(|| {
-            open(
-                path,
-                OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
-                Mode::empty(),
-            )
-        }).is_ok();
-    
-
-    Ok(())
 }
