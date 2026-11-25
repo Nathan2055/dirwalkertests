@@ -136,3 +136,30 @@ fn check_if_dir(path: impl AsRef<Path>) -> Result<()> {
     .map(|_| ())
     .with_context(|| format!("Failed to open {}", path.as_ref().display()))
 }
+
+// Checks if a path is a directory
+#[inline(always)]
+fn check_if_dir_error(path: impl AsRef<Path>) -> Result<()> {
+    let path = path.as_ref();
+    match check_if_dir(&path) {
+        Ok(_) => {
+            return Ok(());
+        }
+        Err(_) => {
+            let file_type = FileType::from_raw_mode(
+                retry_on_intr(|| lstat(path))
+                    .map(|md| md.st_mode)
+                    .with_context(|| format!("Failed to stat {}", path.display()))?,
+            );
+            if file_type.is_dir() {
+                bail!("Failed to read directory at path {}", path.display());
+            } else if file_type.is_file() {
+                bail!("Path {} is a file", path.display());
+            } else if file_type.is_symlink() {
+                bail!("Path {} is a symlink", path.display());
+            } else {
+                bail!("Failed to access path {}", path.display());
+            }
+        }
+    }
+}
