@@ -22,7 +22,7 @@ fn get_path_from_args() -> Result<Box<Path>> {
 
     check_if_dir(&path)?;
 
-    let path = hypernormalize_path(&path)
+    let path = normalize_path_by_parts(&path)
         .with_context(|| format!("Failed to normalize path {}", path.as_path().display()))?;
 
     check_if_dir(&path)?;
@@ -30,7 +30,7 @@ fn get_path_from_args() -> Result<Box<Path>> {
     Ok(path.into_boxed_path())
 }
 
-fn hypernormalize_path(input: &Path) -> Result<PathBuf> {
+fn normalize_path_by_parts(input: &Path) -> Result<PathBuf> {
     let inode1_orig = get_inode(&input)?;
 
     let canon = input
