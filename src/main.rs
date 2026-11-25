@@ -1,6 +1,6 @@
 use anyhow::{Context, Result, anyhow, bail};
-use rustix::fs::{open, lstat, Mode, OFlags};
-use rustix::io::{retry_on_intr, Errno};
+use rustix::fs::{Mode, OFlags, lstat, open};
+use rustix::io::{Errno, retry_on_intr};
 use std::{
     env::args_os,
     ffi::OsString,
@@ -113,8 +113,18 @@ fn get_path_from_args() -> Result<Box<Path>> {
     return Ok(PathBuf::from("/").into_boxed_path());
 }
 
-fn hypernormalize_path(input: &Path) -> Result<Box<Path>> {
-    let canon = input.canonicalize().unwrap();
+fn hypernormalize_path(input: &Path) -> Result<PathBuf> {
+    let inode1_orig = get_inode(&input)?;
+
+    let canon = input
+        .canonicalize()
+        .with_context(|| format!("Failed initial canonicalization of {}", input.display()))?;
+    let inode2_canon = get_inode(&canon)?;
+
+    if inode1_orig != inode2_canon {
+        bail!("Initial canonicalization of {} pointed to different file", input.display());
+    }
+
     let mut items = Vec::with_capacity(canon.components().count());
     for part in canon.components() {
         match part {
@@ -134,22 +144,15 @@ fn hypernormalize_path(input: &Path) -> Result<Box<Path>> {
         rebuild.push(part.as_os_str());
         rebuild.push("/");
     }
+    rebuild.shrink_to_fit();
     let rebuild = PathBuf::from(rebuild);
+    let inode3_rebuild = get_inode(&rebuild)?;
 
-    let inode1 =
-        get_inode(&input).with_context(|| format!("Failed to get inode of {}", input.display()))?;
-    let inode2 =
-        get_inode(&canon).with_context(|| format!("Failed to get inode of {}", canon.display()))?;
-    let inode3 = get_inode(&rebuild)
-        .with_context(|| format!("Failed to get inode of {}", rebuild.display()))?;
-
-    if inode1 == inode2 {
-        if inode2 == inode3 {
-            return Ok(rebuild.into_boxed_path());
-        }
+    if inode1_orig != inode3_rebuild {
+        bail!("Full canonicalization of {} pointed to different file", input.display());
     }
 
-    return Ok(canon.into_boxed_path());
+    Ok(rebuild)
 }
 
 // Gets the inode value for a given path
@@ -158,6 +161,7 @@ fn get_inode(path: impl AsRef<Path>) -> Result<u64> {
     retry_on_intr(|| lstat(path.as_ref()))
         .map(|md| md.st_ino)
         .with_context(|| format!("Failed to stat {}", path.as_ref().display()))
+        .with_context(|| format!("Failed to get inode of {}", path.as_ref().display()))
 }
 
 // Checks if a path is a directory
