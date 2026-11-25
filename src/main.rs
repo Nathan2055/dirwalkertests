@@ -8,23 +8,6 @@ use std::{
 };
 
 fn main() {
-    let error = Errno::AGAIN;
-    println!("{}", error);
-    let error = Errno::ACCESS;
-    println!("{}", error);
-    let error = Errno::INTR;
-    println!("{}", error);
-    let error = Errno::INVAL;
-    println!("{}", error);
-    let error = Errno::LOOP;
-    println!("{}", error);
-    let error = Errno::NAMETOOLONG;
-    println!("{}", error);
-    let error = Errno::NOTDIR;
-    println!("{}", error);
-
-    println!();
-
     println!("Hello, world!");
 }
 
