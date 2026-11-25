@@ -122,7 +122,10 @@ fn hypernormalize_path(input: &Path) -> Result<PathBuf> {
     let inode2_canon = get_inode(&canon)?;
 
     if inode1_orig != inode2_canon {
-        bail!("Initial canonicalization of {} pointed to different file", input.display());
+        bail!(
+            "Initial canonicalization of {} pointed to different file",
+            input.display()
+        );
     }
 
     let mut items = Vec::with_capacity(canon.components().count());
@@ -149,7 +152,10 @@ fn hypernormalize_path(input: &Path) -> Result<PathBuf> {
     let inode3_rebuild = get_inode(&rebuild)?;
 
     if inode1_orig != inode3_rebuild {
-        bail!("Full canonicalization of {} pointed to different file", input.display());
+        bail!(
+            "Full canonicalization of {} pointed to different file",
+            input.display()
+        );
     }
 
     Ok(rebuild)
