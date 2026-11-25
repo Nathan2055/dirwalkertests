@@ -61,76 +61,7 @@ fn get_path_from_args() -> Result<Box<Path>> {
 
     let path = hypernormalize_path(&path).with_context(|| format!("Failed to normalize path {}", path.as_path().display()))?;
 
-    let path_md = symlink_metadata(&path)
-        .with_context(|| format!("Failed to read path {}", path.display()))?;
 
-    if path_md.is_file() {
-        bail!("Path {} is a file", path.display());
-    } else if path_md.is_symlink() {
-        bail!("Path {} is a symlink", path.display());
-    } else if !(path_md.is_dir()) {
-        bail!("Path {} is not a directory", path.display());
-    }
-
-    let path_file = path_md
-        .is_file()
-        .ok_or(anyhow!(""))
-        .with_context(|| format!("Path {} is a file", path.display()));
-
-    let fd = open(
-        &path,
-        OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
-        Mode::empty(),
-    );
-
-    match fd {
-        Ok(_) => todo!(),
-        Err(Errno::AGAIN) => todo!(),
-        Err(Errno::ACCESS) => todo!(),      // access denied
-        Err(Errno::INTR) => todo!(),        // interrupted by signal
-        Err(Errno::INVAL) => todo!(),       // invalid path
-        Err(Errno::LOOP) => todo!(),        // symlinks encountered
-        Err(Errno::NAMETOOLONG) => todo!(), // path too long
-        Err(Errno::NOTDIR) => todo!(),      // not a directory
-        Err(Errno::AGAIN) => todo!(),       // interrupted by something else
-        Err(Errno::AGAIN) => todo!(),
-        Err(Errno::AGAIN) => todo!(),
-        Err(_) => todo!(),
-    }
-
-    if path_md.is_file() {}
-
-    let error_path = || path.display().to_string().into_boxed_str();
-    let error_generic = || format!("Failed to validate provided path \"{}\"", error_path());
-    let error_is_file = || format!("Provided path \"{}\" is a file", error_path());
-    let error_is_symlink = || format!("Provided path \"{}\" is a symlink", error_path());
-
-    let stuff_stat = symlink_metadata(&path).with_context(|| {
-        format!(
-            "Failed to validate provided path \"{}\"",
-            path.display().to_string().into_boxed_str()
-        )
-    })?;
-    let stuff_is_dir = stuff_stat.is_dir();
-    if !stuff_is_dir {
-        if stuff_stat.is_file() {
-            bail!(format!(
-                "Provided path \"{}\" is a file",
-                path.display().to_string().into_boxed_str()
-            ));
-        } else if stuff_stat.is_symlink() {
-            bail!(format!(
-                "Provided path \"{}\" is a symlink",
-                path.display().to_string().into_boxed_str()
-            ));
-        } else {
-        }
-    }
-
-    let stuff_is_file = stuff_stat
-        .is_file()
-        .ok_or(std::io::Error::from(ErrorKind::IsADirectory))
-        .with_context(|| error_is_file());
 
     return Ok(PathBuf::from("/").into_boxed_path());
 }
