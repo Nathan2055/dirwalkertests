@@ -7,8 +7,26 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-fn main() {
+fn main() -> Result<()> {
     println!("Hello, world!");
+
+    println!();
+
+    let original_path = PathBuf::from(
+        args_os()
+            .collect::<Vec<_>>()
+            .get(1)
+            .context("No path specified on command line")?
+            .clone(),
+    );
+
+    println!("Original path: {}", original_path.display());
+
+    let new_path = get_path_from_args()?;
+
+    println!("Normalized path: {}", new_path.display());
+
+    Ok(())
 }
 
 // Extract a path from the command line arguments
